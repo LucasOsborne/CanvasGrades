@@ -13,6 +13,12 @@ class APIError {
 	}
 }
 
+async function main(assignmentsEndpoint, assignmentGroupsEndpoint, submissionsEndpoint, pages) {
+	const unit_assignment = await get_assignments(assignmentsEndpoint, assignmentGroupsEndpoint, submissionsEndpoint, pages);
+	const table_data = build_table(unit_assignment);
+	write_csv(table_data);
+}
+
 function get_grade(submission) {
 	let grade = submission.entered_grade || 'Not graded yet';
 	if (submission.workflow_state !== 'graded' && !submission.score) {
@@ -30,18 +36,12 @@ function get_grade(submission) {
 	return grade;
 }
 
-async function main(assignmentsEndpoint, assignmentGroupsEndpoint, submissionsEndpoints, pages) {
-	const unit_assignment = await get_assignments(assignmentsEndpoint, assignmentGroupsEndpoint, submissionsEndpoints, pages);
-	const table_data = build_table(unit_assignment);
-	write_csv(table_data);
-}
-
-async function get_assignments(assignmentsGroups, assignmentsEndpoint, submissionsEndpoints, pages) {
+async function get_assignments(assignmentsGroups, assignmentsEndpoint, submissionsEndpoint, pages) {
 	try {
 		const [response, groupsResponse, submissionsResponse] = await Promise.all([
 			fetch(assignmentsEndpoint + `?per_page=${pages}`, { headers: { Authorization: `Bearer ${API_KEY}` } }),
 			fetch(assignmentsGroups + `?per_page=${pages}`, { headers: { Authorization: `Bearer ${API_KEY}` } }),
-			fetch(submissionsEndpoints + `?per_page=${pages}`, { headers: { Authorization: `Bearer ${API_KEY}` } }),
+			fetch(submissionsEndpoint + `?per_page=${pages}`, { headers: { Authorization: `Bearer ${API_KEY}` } }),
 		]);
 
 		let assignments = await response.json();
@@ -96,8 +96,6 @@ function build_table(unit_assignments) {
 		table_data.push(row);
 	});
 
-	write_csv(table_data);
-
 	return table_data;
 }
 
@@ -125,7 +123,7 @@ function write_csv(table_data) {
 
 		csvWriter
 			.writeRecords(rows)
-			.then(() => console.log('Data written to data.csv file.'))
+			.then(console.log(`Data written to CSV file`))
 			.catch((error) => console.log(`Error writing data to CSV file ${error}`));
 	} catch (e) {
 		console.log(`Error writing data to CSV file ${e}`);
